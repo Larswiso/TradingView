@@ -1,0 +1,26 @@
+//@version=5
+indicator("Pivot Points mit Kreuzen", overlay=true)
+
+// Parameter für die Pivot-Funktionen
+leftBars = input.int(5, "Linke Balken", minval=1)
+rightBars = input.int(5, "Rechte Balken", minval=1)
+
+lastSwingHL(choice,leftBars,rightBars)=>
+    varip float savedPH = 1
+    varip float savedPL = 1
+
+    ph = ta.pivothigh(high, leftBars, rightBars)
+    pl = ta.pivotlow(low, leftBars, rightBars)
+
+    if na(ph) == false
+        savedPH := ph
+    if na(pl) == false
+        savedPL := pl
+
+    swing = if choice == "h"
+        savedPH
+    else if choice == "l"
+        savedPL
+
+
+//lastSwingHL("l",leftBars,rightBars)))
