@@ -1,0 +1,17 @@
+//@version=5
+indicator(title="[Wiso] Squeeze Momentum Indicator [LazyBear]", overlay=false)
+lengthKC=input.int(20, title="KC Length")
+val = ta.linreg(close  -  math.avg(math.avg(ta.highest(high, lengthKC), ta.lowest(low, lengthKC)),ta.sma(close,lengthKC)), lengthKC,0)
+
+bcolor = if  val > 0
+    if val > nz(val[1])
+        color.lime
+    else
+        color.green
+else
+    if val < nz(val[1])
+        color.red
+    else
+        color.maroon
+
+plot(val, color=bcolor, style=plot.style_histogram, linewidth=4)
