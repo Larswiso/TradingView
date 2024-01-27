@@ -1,0 +1,57 @@
+//@version=5
+indicator(title="[WISO] CM_Ultimate_MA_MTF_V5", overlay=true)
+//inputs
+src = (close+high+low+open)/4
+useCurrentRes = input(true, title="Use Current Chart Resolution?")
+resCustom = input(title="Use Different Timeframe? Uncheck Box Above", defval="D")
+len = input.int(20, title="Moving Average Length - LookBack Period")
+//periodT3 = input(defval=7, title="Tilson T3 Period", minval=1) 
+factorT3 = input.int(defval=7, title="Tilson T3 Factor - *.10 - so 7 = .7 etc.", minval=0) 
+atype = input.int(1,minval=1,maxval=8,title="1=SMA, 2=EMA, 3=WMA, 4=HullMA, 5=VWMA, 6=RMA, 7=TEMA, 8=Tilson T3")
+spc=input(false, title="Show Price Crossing 1st Mov Avg - Highlight Bar?")
+cc = input(true,title="Change Color Based On Direction?")
+smoothe = input.int(2, minval=1, maxval=10, title="Color Smoothing - Setting 1 = No Smoothing")
+
+
+res = useCurrentRes ? timeframe.period : resCustom
+//hull ma definition
+hullma = ta.wma(2*ta.wma(src, len/2)-ta.wma(src, len), math.round(math.sqrt(len)))
+//TEMA definition
+ema1 = ta.ema(src, len)
+ema2 = ta.ema(ema1, len)
+ema3 = ta.ema(ema2, len)
+tema = 3 * (ema1 - ema2) + ema3
+
+//Tilson T3
+factor = factorT3 *.10
+gd(src, len, factor) => ta.ema(src, len) * (1 + factor) - ta.ema(ta.ema(src, len), len) * factor 
+t3(src, len, factor) => gd(gd(gd(src, len, factor), len, factor), len, factor) 
+tilT3 = t3(src, len, factor) 
+ 
+
+avg = atype == 1 ? ta.sma(src,len) : atype == 2 ? ta.ema(src,len) : atype == 3 ? ta.wma(src,len) : atype == 4 ? hullma : atype == 5 ? ta.vwma(src, len) : atype == 6 ? ta.rma(src,len) : atype == 7 ? 3 * (ema1 - ema2) + ema3 : tilT3
+
+
+
+out = avg 
+
+out1 = request.security(syminfo.tickerid, res, out)
+
+//Formula for Price Crossing Moving Average #1
+cr_up = open < out1 and close > out1
+cr_Down = open > out1 and close < out1
+
+//barcolor Criteria for Price Crossing Moving Average #1
+iscrossUp() => cr_up
+iscrossDown() => cr_Down
+
+
+ma_up = out1 >= out1[smoothe]
+ma_down = out1 < out1[smoothe]
+
+col = cc ? ma_up ? color.lime : ma_down ? color.red : color.aqua : color.aqua
+
+
+plot(out1, title="Multi-Timeframe Moving Avg", linewidth=4, color = col)
+
+
