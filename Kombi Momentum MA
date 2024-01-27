@@ -1,0 +1,88 @@
+//@version=5
+indicator(title="[WISO] CM_Ultimate_MA_MTF_V5", overlay=true)
+//inputs
+src = (close+high+low+open)/4
+useCurrentRes = input(true, title="Use Current Chart Resolution?")
+resCustom = input(title="Use Different Timeframe? Uncheck Box Above", defval="D")
+len = input.int(20, title="Moving Average Length - LookBack Period")
+//periodT3 = input(defval=7, title="Tilson T3 Period", minval=1) 
+factorT3 = input.int(defval=7, title="Tilson T3 Factor - *.10 - so 7 = .7 etc.", minval=0) 
+atype = input.int(1,minval=1,maxval=8,title="1=SMA, 2=EMA, 3=WMA, 4=HullMA, 5=VWMA, 6=RMA, 7=TEMA, 8=Tilson T3")
+smoothe = input.int(2, minval=1, maxval=10, title="Color Smoothing - Setting 1 = No Smoothing")
+
+
+res = useCurrentRes ? timeframe.period : resCustom
+//hull ma definition
+hullma = ta.wma(2*ta.wma(src, len/2)-ta.wma(src, len), math.round(math.sqrt(len)))
+//TEMA definition
+ema1 = ta.ema(src, len)
+ema2 = ta.ema(ema1, len)
+ema3 = ta.ema(ema2, len)
+tema = 3 * (ema1 - ema2) + ema3
+
+//Tilson T3
+factor = factorT3 *.10
+gd(src, len, factor) => ta.ema(src, len) * (1 + factor) - ta.ema(ta.ema(src, len), len) * factor 
+t3(src, len, factor) => gd(gd(gd(src, len, factor), len, factor), len, factor) 
+tilT3 = t3(src, len, factor) 
+ 
+
+avg = atype == 1 ? ta.sma(src,len) : atype == 2 ? ta.ema(src,len) : atype == 3 ? ta.wma(src,len) : atype == 4 ? hullma : atype == 5 ? ta.vwma(src, len) : atype == 6 ? ta.rma(src,len) : atype == 7 ? 3 * (ema1 - ema2) + ema3 : tilT3
+
+out = avg 
+
+out1 = request.security(syminfo.tickerid, res, out)
+
+//Formula for Price Crossing Moving Average #1
+cr_up = open < out1 and close > out1
+cr_Down = open > out1 and close < out1
+
+//barcolor Criteria for Price Crossing Moving Average #1
+iscrossUp() => cr_up
+iscrossDown() => cr_Down
+
+
+ma_up = out1 >= out1[smoothe]
+ma_down = out1 < out1[smoothe]
+
+movingAverage = ma_up ? 1 : 0
+
+
+
+lengthKC=input.int(20, title="KC Length")
+val = ta.linreg(close  -  math.avg(math.avg(ta.highest(high, lengthKC), ta.lowest(low, lengthKC)),ta.sma(close,lengthKC)), lengthKC,0)
+
+momentum = 0.0
+
+
+w1 = input.float(0.4, "W1", step = 0.01)
+w2 = input.float(0.6, "W2", step = 0.01)
+
+m1 = input.float(1, "m1", step = 0.01)
+m2 = input.float(0.25, "m2", step = 0.01)
+m3 = input.float(0.0, "m3", step = 0.01)
+m4 = input.float(0.75, "m4", step = 0.01)
+
+tres = input.float(0.5, "tres", step = 0.01)
+
+if  val > 0
+    if val > nz(val[1])
+        momentum:=m1
+    else
+        momentum:=m2
+else
+    if val < nz(val[1])
+        momentum:=m3
+    else
+        momentum:=m4
+
+
+
+
+weightedSum = 0.4 * momentum + 0.6 * movingAverage
+
+log.info(str.tostring(weightedSum))
+
+col = weightedSum >= tres ? color.green : color.red 
+
+plot(out1, title="Multi-Timeframe Moving Avg", linewidth=4, color = col)
