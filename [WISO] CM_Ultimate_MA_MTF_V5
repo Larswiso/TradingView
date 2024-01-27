@@ -8,8 +8,6 @@ len = input.int(20, title="Moving Average Length - LookBack Period")
 //periodT3 = input(defval=7, title="Tilson T3 Period", minval=1) 
 factorT3 = input.int(defval=7, title="Tilson T3 Factor - *.10 - so 7 = .7 etc.", minval=0) 
 atype = input.int(1,minval=1,maxval=8,title="1=SMA, 2=EMA, 3=WMA, 4=HullMA, 5=VWMA, 6=RMA, 7=TEMA, 8=Tilson T3")
-spc=input(false, title="Show Price Crossing 1st Mov Avg - Highlight Bar?")
-cc = input(true,title="Change Color Based On Direction?")
 smoothe = input.int(2, minval=1, maxval=10, title="Color Smoothing - Setting 1 = No Smoothing")
 
 
@@ -49,9 +47,8 @@ iscrossDown() => cr_Down
 ma_up = out1 >= out1[smoothe]
 ma_down = out1 < out1[smoothe]
 
-col = cc ? ma_up ? color.lime : ma_down ? color.red : color.aqua : color.aqua
+col = ma_up ? color.lime : color.red
 
 
 plot(out1, title="Multi-Timeframe Moving Avg", linewidth=4, color = col)
-
 
