@@ -1,0 +1,40 @@
+//@version=5
+indicator("LiqLevels", overlay = true)
+
+offset = input.int(5, "Importance/Length", minval = 1)
+calcOnClose = input.bool(true, "Calculate based on close")
+
+ph = ta.pivothigh(high, offset, offset)
+pl = ta.pivotlow(low, offset, offset)
+
+varip liqLevelsPrice = array.new_float(0)
+varip liqLevelsBar = array.new_int(0)
+
+
+if not na(ph)
+    array.push(liqLevelsPrice, ph)
+    array.push(liqLevelsBar, bar_index-offset)
+if not na(pl)
+    array.push(liqLevelsPrice, pl)
+    array.push(liqLevelsBar, bar_index-offset)
+
+for [index, value] in liqLevelsPrice
+    if open <= value and value <= close and calcOnClose
+        array.remove(liqLevelsPrice, index)
+        array.remove(liqLevelsBar, index)
+
+    if open >= value and value >= close and calcOnClose
+        array.remove(liqLevelsPrice, index)
+        array.remove(liqLevelsBar, index)
+
+    if open <= value and value <= high and calcOnClose == false
+        array.remove(liqLevelsPrice, index)
+        array.remove(liqLevelsBar, index)
+
+    if open >= value and value >= low and calcOnClose == false
+        array.remove(liqLevelsPrice, index)
+        array.remove(liqLevelsBar, index)
+var line liqLine = na
+for [index, value] in liqLevelsPrice
+    barI = array.get(liqLevelsBar, index)
+    liqLine := line.new(barI, value, bar_index, value, color=color.blue, width=2)
