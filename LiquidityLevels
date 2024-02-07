@@ -64,14 +64,14 @@ if barstate.islast
     for x = 0 to cnum - 1 by 1
         array.set(vol_bars, x, box.new(bar_index - barsBack_start + 1, 
                                        array.get(levels, x + 1) - dist, 
-                                       bar_index - barsBack_start + 1 + math.round(array.get(volumes, x)), 
+                                       bar_index - barsBack_start + 1 + math.round(array.get(volumes, x))*(1-(barsBack_end/barsBack_start)), 
                                        array.get(levels, x) + dist, 
                                        border_width=0,
                                        bgcolor= col))
                                        
-        array.set(vol_bars, x + cnum, box.new(bar_index - barsBack_start + 1 + math.round(array.get(volumes, x)), 
+        array.set(vol_bars, x+ cnum, box.new(bar_index - barsBack_start + 1 + math.round(array.get(volumes, x))*(1-(barsBack_end/barsBack_start)), 
                                               array.get(levels, x + 1) - dist, 
-                                              bar_index - barsBack_start + 1 + math.round(array.get(volumes, x)) + math.round(array.get(volumes, x + cnum)), 
+                                              bar_index - barsBack_start + 1 + math.round(array.get(volumes, x))*(1-(barsBack_end/barsBack_start)) + math.round(array.get(volumes, x + cnum))*(1-(barsBack_end/barsBack_start)), 
                                               array.get(levels, x) + dist, 
                                               border_width=0,
                                               bgcolor= col))
