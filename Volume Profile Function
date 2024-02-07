@@ -7,7 +7,7 @@ indicator('Volume Profile / Fixed Range', overlay=true)
 barsBack_start = input.int(title='Number of Bars back / Start', defval=150, minval=1)
 barsBack_end = input.int(title='Number of Bars back / END', defval=0, minval=0)
 
-cnum = input.int(title='Row Size', defval=24, minval=5)
+cnum = input.int(title='Row Size', defval=10, minval=5)
 
 col = input.color(color.aqua, "Color")
 
@@ -95,9 +95,37 @@ if barstate.islast
 
     log.info("--")
 
-    tres = input.float(0.7, "Zonenschwellenwert")
+    threshold = input.float(0.7, "Zonenschwellenwert")
 
+    
+    
+
+    from_index = 0
+    to_index = 0
+    result_from = array.new_int(0)
+    for [i, num] in normalizeVol
+        if num >= threshold
+            if from_index == 0
+                from_index := i
+            to_index := i
+        else
+            if from_index != 0
+                array.push(result_from, from_index)
+                array.push(result_from, to_index)
+                from_index := 0    
+    if from_index  != 0
+        array.push(result_from, from_index)
+        array.push(result_from, to_index)
+    
+    for x in result_from
+        log.info(str.tostring(x))
+
+    counter = 0
     var top_vol_bars = array.new_box(cnum * 2, na)
     for x = 0 to cnum - 1 by 1
-        if array.get(normalizeVol, x) >= tres
+        if array.get(normalizeVol, x) >= threshold
             array.set(top_vol_bars, x, box.new(bar_index - barsBack_start + 1, array.get(levels, x + 1) - dist,  bar_index, array.get(levels, x) + dist, border_width=0,bgcolor= color.red))
+        
+        array.set(top_vol_bars, x, box.new(bar_index - barsBack_start + 1, array.get(levels, array.get(result_from, counter) + 1) - dist,  bar_index, array.get(levels, array.get(result_from, counter)) + dist, border_width=0,bgcolor= color.purple))
+        if array.size(result_from) >= counter
+            counter += 2
