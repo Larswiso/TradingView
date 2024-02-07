@@ -1,0 +1,74 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © LonesomeTheBlue
+
+//@version=5
+indicator('Volume Profile / Fixed Range', overlay=true)
+bbars = input.int(title='Number of Bars', defval=150, minval=1, maxval=500)
+cnum = input.int(title='Row Size', defval=24, minval=5)
+
+top = ta.highest(bbars)
+bot = ta.lowest(bbars)
+dist = (top - bot) / 500
+step = (top - bot) / cnum
+
+// calculate/keep channel levels
+levels = array.new_float(cnum + 1)
+for x = 0 to cnum by 1
+    array.set(levels, x, bot + step * x)
+
+// get the volume if there is intersection
+get_vol(y11, y12, y21, y22, height, vol) =>
+    nz(math.max(math.min(math.max(y11, y12), math.max(y21, y22)) - math.max(math.min(y11, y12), math.min(y21, y22)), 0) * vol / height)
+
+if barstate.islast
+    // calculate/get volume for each channel and candle
+    volumes = array.new_float(cnum * 2, 0.)
+    for bars = 0 to bbars - 1 by 1
+        body_top = math.max(close[bars], open[bars])
+        body_bot = math.min(close[bars], open[bars])
+        itsgreen = close[bars] >= open[bars]
+
+        topwick = high[bars] - body_top
+        bottomwick = body_bot - low[bars]
+        body = body_top - body_bot
+
+        bodyvol = body * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+        topwickvol = 2 * topwick * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+        bottomwickvol = 2 * bottomwick * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+        for x = 0 to cnum - 1 by 1
+            array.set(volumes, x, array.get(volumes, x) + (itsgreen ? get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, body_top, body, bodyvol) : 0) + get_vol(array.get(levels, x), array.get(levels, x + 1), body_top, high[bars], topwick, topwickvol) / 2 + get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, low[bars], bottomwick, bottomwickvol) / 2)
+            array.set(volumes, x + cnum, array.get(volumes, x + cnum) + (itsgreen ? 0 : get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, body_top, body, bodyvol)) + get_vol(array.get(levels, x), array.get(levels, x + 1), body_top, high[bars], topwick, topwickvol) / 2 + get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, low[bars], bottomwick, bottomwickvol) / 2)
+
+    totalvols = array.new_float(cnum, 0.)
+    for x = 0 to cnum - 1 by 1
+        array.set(totalvols, x, array.get(volumes, x) + array.get(volumes, x + cnum))
+
+    int poc = array.indexof(totalvols, array.max(totalvols))
+
+    maxvol = array.max(totalvols)
+    for x = 0 to cnum * 2 - 1 by 1
+        array.set(volumes, x, array.get(volumes, x) * bbars / (3 * maxvol))
+
+
+    // Draw VP rows
+    var vol_bars = array.new_box(cnum * 2, na)
+    for x = 0 to cnum - 1 by 1
+        array.set(vol_bars, x, box.new(bar_index - bbars + 1, 
+                                       array.get(levels, x + 1) - dist, 
+                                       bar_index - bbars + 1 + math.round(array.get(volumes, x)), 
+                                       array.get(levels, x) + dist, 
+                                       border_width=0))
+                                       
+        array.set(vol_bars, x + cnum, box.new(bar_index - bbars + 1 + math.round(array.get(volumes, x)), 
+                                              array.get(levels, x + 1) - dist, 
+                                              bar_index - bbars + 1 + math.round(array.get(volumes, x)) + math.round(array.get(volumes, x + cnum)), 
+                                              array.get(levels, x) + dist, 
+                                              border_width=0))
+
+    var realVOl = array.new_float(0)
+    for x = 0 to cnum - 1 by 1
+        vol = array.get(volumes, x) + array.get(volumes, x + cnum)
+        array.push(realVOl, vol)
+        log.info(str.tostring(vol))
+
+    log.info("--")
