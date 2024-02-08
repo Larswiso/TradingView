@@ -1,0 +1,48 @@
+//@version=5
+indicator("[WISO] Simple Price Action Trend Detection", overlay=true)
+
+// Bull  Trend = Higher Highs and Higher Lows
+// Bear Trend = Lower Highs and Lows Lows
+
+// Bull > Bear: lower low
+// Bear > Bull: higher High
+
+
+varip float lastPH = 1.1
+varip float lastPL = 0.1
+
+offset = input.int(5, "Length", minval=1)
+useClose = input.bool(false, "Use Close for Swing Points")
+showPP = input.bool(false, "Show Swing Highs and Lows")
+
+
+ph = ta.pivothigh(useClose?close:high, offset, offset)
+pl = ta.pivotlow(useClose?close:low, offset, offset)
+
+varip bool isBull = true
+
+if na(ph) == false
+    if ph < lastPH
+        isBull := false
+    else
+        isBull := true
+    lastPH := ph
+if na(pl) == false
+    if pl > lastPL
+        isBull := true
+    else
+        isBull := false
+    lastPL := pl
+
+
+slowAverage = ta.sma(close, 50)
+//plot(slowAverage, color=isBull?color.green:color.red)
+
+log.info(str.tostring(isBull))
+
+col1 = showPP?color.new(color.green,0):color.new(color.green,100)
+col2 = showPP?color.new(color.red,0):color.new(color.red,100)
+plotshape(ph, style=shape.triangledown, color=col1, size=size.small, location=location.abovebar, offset = -offset)
+plotshape(pl, style=shape.triangleup, color=col2, size=size.small, location=location.belowbar, offset = -offset)
+
+
