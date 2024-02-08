@@ -1,0 +1,42 @@
+//@version=5
+indicator("Pivot Points with Fibonacci Retracements", overlay=true)
+
+// Input parameters
+leftBars = input.int(5, "Left bars", minval=1)
+rightBars = input.int(5, "Right bars", minval=1)
+fibLevel1 = input.float(0.236, "Fibonacci levels")
+fibLevel2 = input.float(0.236, "Fibonacci levels")
+fibLevel3 = input.float(0.236, "Fibonacci levels")
+
+// Calculate pivot points
+
+pHigh = ta.pivothigh(high, leftBars, rightBars)
+pLow = ta.pivotlow(low, leftBars, rightBars)
+
+var arrPHigh = array.new_float(10)
+var arrPLow = array.new_float(10)
+
+if not na(pHigh)
+    array.unshift(id=arrPHigh, value=pHigh)
+
+if not na(pLow)
+    array.unshift(id=arrPLow, value=pLow)
+
+
+
+// Retracement Level=Hochster Punkt−(Hochster Punkt − Tiefster Punkt)× Fibonacci-Retracement-Level
+latestpHigh = array.get(id=arrPHigh, index = 0)
+latestpLow = array.get(id=arrPLow, index = 0)
+
+retracementLevel1 = math.round(latestpHigh - (latestpHigh - latestpLow) * fibLevel1, 3)
+retracementLevel2 = math.round(latestpHigh - (latestpHigh - latestpLow) * fibLevel2, 3)
+retracementLevel3 = math.round(latestpHigh - (latestpHigh - latestpLow) * fibLevel3, 3)
+
+var line l = na
+l :=  line.new(bar_index - 10, retracementLevel1, bar_index, retracementLevel1, color = color.aqua)
+
+l :=  line.new(bar_index - 10, retracementLevel2, bar_index, retracementLevel2, color = color.green)
+l :=  line.new(bar_index - 10, retracementLevel3, bar_index, retracementLevel3, color = color.red)
+
+plot(pHigh, style=plot.style_cross, offset=-leftBars, linewidth = 3)
+plot(pLow, style=plot.style_cross, offset=-leftBars, linewidth = 3)
