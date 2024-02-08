@@ -1,0 +1,61 @@
+//@version=5
+
+
+indicator(title='UT Bot v5 indicator', overlay=true)
+
+// Inputs
+AllowBuy = input(defval=true, title='Allow Buy?')
+AllowSell = input(defval=false, title='Allow Sell?')
+h = input(false, title='Signals from Heikin Ashi Candles')
+
+
+Price = input(defval=close, title='Price Source (recommended OPEN to avoid repainting)')
+smoothing = input.string(title="Moving Average Type", defval="SMA", options=["SMA", "EMA", "WMA", "HMA"])
+MA_Period = input(2, title='This changes the MAPeriod')
+a = input.float(1, title='This changes the sensitivity',step=0.1)
+c = input(11, title='ATR Period')
+
+
+xATR = ta.atr(c)
+nLoss = a * xATR
+
+src = h ? request.security(ticker.heikinashi(syminfo.tickerid), timeframe.period, Price, lookahead=barmerge.lookahead_off) : Price
+
+xATRTrailingStop = 0.0
+iff_1 = src > nz(xATRTrailingStop[1], 0) ? src - nLoss : src + nLoss
+iff_2 = src < nz(xATRTrailingStop[1], 0) and src[1] < nz(xATRTrailingStop[1], 0) ? math.min(nz(xATRTrailingStop[1]), src + nLoss) : iff_1
+xATRTrailingStop := src > nz(xATRTrailingStop[1], 0) and src[1] > nz(xATRTrailingStop[1], 0) ? math.max(nz(xATRTrailingStop[1]), src - nLoss) : iff_2
+
+pos = 0
+iff_3 = src[1] > nz(xATRTrailingStop[1], 0) and src < nz(xATRTrailingStop[1], 0) ? -1 : nz(pos[1], 0)
+pos := src[1] < nz(xATRTrailingStop[1], 0) and src > nz(xATRTrailingStop[1], 0) ? 1 : iff_3
+
+xcolor = pos == -1 ? color.red : pos == 1 ? color.green : color.blue
+
+ma_function(src, MA_Period) =>
+    switch smoothing
+        "SMA" => ta.sma(src, MA_Period)
+        "EMA" => ta.ema(src, MA_Period)
+        "WMA" => ta.wma(src, MA_Period)
+        => ta.hma(src, MA_Period)
+
+thema = ma_function(src, MA_Period)
+above = ta.crossover(thema, xATRTrailingStop)
+below = ta.crossover(xATRTrailingStop, thema)
+
+buy = src > xATRTrailingStop and above
+sell = src < xATRTrailingStop and below
+barbuy = src > xATRTrailingStop
+barsell = src < xATRTrailingStop
+
+
+plot(thema,title="The M.A.",color=color.green,linewidth=2)
+plot(xATRTrailingStop,title="The M.A.",color=color.red,linewidth=2)
+
+plotshape(buy,  title = "Buy",  text = "Buy",  style = shape.labelup,   location = location.belowbar, color= color.green, textcolor = color.white, size = size.tiny)
+plotshape(sell, title = "Sell", text = "Sell", style = shape.labeldown, location = location.abovebar, color= color.red,   textcolor = color.white, size = size.tiny)
+barcolor(barbuy ? color.green : na)
+barcolor(barsell ? color.red : na)
+
+alertcondition(buy, "Buy Cond")
+alertcondition(sell, "sell Cond")
