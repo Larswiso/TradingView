@@ -1,0 +1,40 @@
+//@version=5
+indicator("[WISO] Strong Support Zones", overlay=true)
+
+varip ppArr = array.new_float(0)
+varip ppArrInd = array.new_float(0)
+var supportLevels = array.new_float(0)
+
+
+offset = input.int(25, "Länge", minval=1)
+bereich_abweichung = input.float(0.1, "Abweichung von supportLevel für weitere PP", step = 0.001)
+anzahl_retests = input.int(2, "Mindestanzahl an Retests", minval=1)
+
+
+ph = ta.pivothigh(high, offset, offset)
+pl = ta.pivotlow(low, offset, offset)
+
+if na(ph) == false
+    array.push(ppArr,ph)
+if na(pl) == false
+    array.push(ppArr,pl)
+
+
+if barstate.islast
+    ppArrCopy = array.copy(ppArr)
+    for x1 in ppArrCopy
+        zaehler = 0
+        for x2 in ppArrCopy
+            if x2 >= (1-bereich_abweichung) * x1 and x2 <= (1+bereich_abweichung) * x1
+                zaehler += 1
+        if zaehler >= 3
+            array.push(supportLevels, x1)
+
+
+var line Line = na
+
+
+for val in supportLevels
+    Line := line.new(bar_index, val, bar_index+1, val, width=2, extend = extend.both)
+    log.info(str.tostring(val))
+    
